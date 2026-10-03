@@ -1,0 +1,40 @@
+Ready: http://127.0.0.1:10000   (live scores: http://127.0.0.1:10000/_stats)
+== 1. Normal routing
+20 requests:
+      7 Server-1
+      7 Server-2
+      6 Server-3
+  PASS: requests reach at least 2 different servers
+== 2. Slow server (Server-3 made slow)
+Making Server-3 slow (1.5 s); sending 40 requests ...
+     20 Server-1
+     19 Server-2
+      1 Server-3
+rank  server              healthy  active  ewma(ms)   score      served
+1     127.0.0.1:8081      UP       0       0.1        1.0        27
+2     127.0.0.1:8082      UP       0       0.2        1.0        26
+3     127.0.0.1:8083      UP       0       1261.7     126.7      7
+  PASS: Server-3 got <= 8 of 40 requests (traffic shifted away)
+== 3. Failover (Server-2 stopped)
+Stopping Server-2 ...
+12 requests:
+     12 Server-1
+rank  server              healthy  active  ewma(ms)   score      served
+1     127.0.0.1:8081      UP       0       0.1        1.0        39
+2     127.0.0.1:8083      UP       0       1261.7     2.1        7
+3     127.0.0.1:8082      DOWN     0       0.2        1.0        26
+  PASS: no request went to the dead Server-2
+  PASS: all 12 requests still succeeded
+== 4. Recovery (Server-2 restarted)
+20 requests:
+      6 Server-1
+      7 Server-2
+      7 Server-3
+  PASS: Server-2 serves traffic again
+== 5. Rate limit
+300 parallel requests (HTTP status codes):
+    168 200
+    132 429
+  PASS: some requests were rejected with 429
+  PASS: some requests succeeded with 200
+ALL CHECKS PASSED
